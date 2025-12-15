@@ -1,0 +1,50 @@
+name: Versioned Build (Tag)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        run: |
+          echo "Setting up environment for tag: ${{ github.ref_name }}"
+          docker version
+          chmod +x ci/smoke_test.sh
+
+      - name: Build Docker Image
+        run: |
+          docker build -t power_gym:${{ github.ref_name }} .
+
+      - name: Run (Docker)
+        run: |
+          docker run -d --name power_gym-tag -p 3003:80 power_gym:${{ github.ref_name }}
+          sleep 10
+
+      - name: Smoke Test
+        run: |
+          ./ci/smoke_test.sh http://localhost:3003
+
+      - name: Save Docker Image
+        run: |
+          docker image save power_gym:${{ github.ref_name }} -o power_gym-${{ github.ref_name }}.tar
+
+      - name: Archive Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ github.ref_name }}
+          path: |
+            power_gym-${{ github.ref_name }}.tar
+            ci/smoke_report_*.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f power_gym-tag || true

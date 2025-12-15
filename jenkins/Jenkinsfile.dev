@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                script {
+                    echo "Setting up environment..."
+                    bat 'docker version'
+                }
+            }
+        }
+
+        stage('Parallel Build & Test') {
+            parallel {
+                stage('Runtime Node 18') {
+                    steps {
+                        script {
+                            echo "Building on Node 18..."
+                            // Mounting workspace to container to build
+                            bat 'docker run --rm -v "%WORKSPACE%":/app -w /app node:18-alpine sh -c "npm ci && npm run build"'
+                        }
+                    }
+                }
+                stage('Runtime Node 20') {
+                    steps {
+                        script {
+                            echo "Building on Node 20..."
+                            bat 'docker run --rm -v "%WORKSPACE%":/app -w /app node:20-alpine sh -c "npm ci && npm run build"'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    bat 'docker build -t power_gym:dev-%GIT_COMMIT% .'
+                }
+            }
+        }
+
+        stage('Run (Docker)') {
+            steps {
+                script {
+                    // Remove existing container if any
+                    bat 'docker rm -f power_gym-dev || exit 0'
+                    // Run new container
+                    bat 'docker run -d --name power_gym-dev -p 3001:80 power_gym:dev-%GIT_COMMIT%'
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                script {
+                    // Wait for container to be fully ready
+                    sleep(time: 10, unit: "SECONDS")
+                    bat 'scripts\\smoke.bat http://localhost:3001'
+                }
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'smoke_result.txt', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleanup container
+            bat 'docker rm -f power_gym-dev || exit 0'
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}

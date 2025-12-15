@@ -1,0 +1,106 @@
+.admin-book-table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-book-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-book-table thead {
+  background: #f5f5f5;
+}
+
+.admin-book-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-book-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #555;
+}
+
+.admin-book-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.admin-book-table-image {
+  width: 60px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.admin-book-table-title {
+  font-weight: 500;
+  color: #333;
+  max-width: 200px;
+}
+
+.admin-book-table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-book-table-edit {
+  padding: 6px 12px;
+  background: #2563eb;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.admin-book-table-edit:hover {
+  background: #1d4ed8;
+}
+
+.admin-book-table-delete {
+  padding: 6px 12px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-book-table-delete:hover {
+  background: #b91c1c;
+}
+
+.admin-book-table-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 1.1rem;
+  background: white;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .admin-book-table {
+    font-size: 0.9rem;
+  }
+
+  .admin-book-table th,
+  .admin-book-table td {
+    padding: 12px 8px;
+  }
+
+  .admin-book-table-image {
+    width: 40px;
+    height: 60px;
+  }
+}
+

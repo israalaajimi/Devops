@@ -1,0 +1,67 @@
+name: Full Build (Dev)
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  parallel-test:
+    name: Build & Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build App
+        run: npm run build
+
+  build-deploy:
+    needs: parallel-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        run: |
+          echo "Setting up environment..."
+          docker version
+          chmod +x ci/smoke_test.sh
+
+      - name: Build Docker Image
+        run: |
+          docker build -t power_gym:dev-${{ github.sha }} .
+
+      - name: Run (Docker)
+        run: |
+          docker run -d --name power_gym-dev -p 3001:80 power_gym:dev-${{ github.sha }}
+          sleep 10
+
+      - name: Smoke Test
+        run: |
+          ./ci/smoke_test.sh http://localhost:3001
+
+      - name: Archive Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report-dev
+          path: ci/smoke_report_*.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f power_gym-dev || true

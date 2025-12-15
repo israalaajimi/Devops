@@ -1,0 +1,44 @@
+name: Build & Smoke (PR)
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        run: |
+          echo "Setting up environment..."
+          docker version
+          chmod +x ci/smoke_test.sh
+
+      - name: Build Docker Image
+        run: |
+          docker build -t power_gym:pr-${{ github.sha }} .
+
+      - name: Run (Docker)
+        run: |
+          docker run -d --name power_gym-pr -p 3002:80 power_gym:pr-${{ github.sha }}
+          sleep 10 # Wait for container to start
+
+      - name: Smoke Test
+        run: |
+          ./ci/smoke_test.sh http://localhost:3002
+
+      - name: Archive Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: ci/smoke_report_*.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f power_gym-pr || true

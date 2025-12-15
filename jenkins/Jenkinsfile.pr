@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                script {
+                    bat 'docker version'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    // Build the Docker image directly (multi-stage build handles the app build)
+                    bat 'docker build -t power_gym:pr-%GIT_COMMIT% .'
+                }
+            }
+        }
+
+        stage('Run (Docker)') {
+            steps {
+                script {
+                    bat 'docker rm -f power_gym-pr || exit 0'
+                    bat 'docker run -d --name power_gym-pr -p 3002:80 power_gym:pr-%GIT_COMMIT%'
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                script {
+                    sleep(time: 10, unit: "SECONDS")
+                    bat 'scripts\\smoke.bat http://localhost:3002'
+                }
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'smoke_result.txt', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            bat 'docker rm -f power_gym-pr || exit 0'
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}
