@@ -11,7 +11,8 @@ pipeline {
         stage('Setup') {
             steps {
                 script {
-                    bat 'docker version'
+                    sh 'docker version'
+                    sh 'chmod +x ci/smoke_test.sh'
                 }
             }
         }
@@ -20,7 +21,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image directly (multi-stage build handles the app build)
-                    bat 'docker build -t power_gym:pr-%GIT_COMMIT% .'
+                    sh 'docker build -t power_gym:pr-${GIT_COMMIT} .'
                 }
             }
         }
@@ -28,8 +29,8 @@ pipeline {
         stage('Run (Docker)') {
             steps {
                 script {
-                    bat 'docker rm -f power_gym-pr || exit 0'
-                    bat 'docker run -d --name power_gym-pr -p 3002:80 power_gym:pr-%GIT_COMMIT%'
+                    sh 'docker rm -f power_gym-pr || true'
+                    sh 'docker run -d --name power_gym-pr -p 3002:80 power_gym:pr-${GIT_COMMIT}'
                 }
             }
         }
@@ -38,7 +39,7 @@ pipeline {
             steps {
                 script {
                     sleep(time: 10, unit: "SECONDS")
-                    bat 'scripts\\smoke.bat http://localhost:3002'
+                    sh './ci/smoke_test.sh http://host.docker.internal:3002'
                 }
             }
         }
@@ -52,7 +53,7 @@ pipeline {
 
     post {
         always {
-            bat 'docker rm -f power_gym-pr || exit 0'
+            sh 'docker rm -f power_gym-pr || true'
         }
         cleanup {
             cleanWs()

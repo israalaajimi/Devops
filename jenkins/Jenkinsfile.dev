@@ -12,7 +12,8 @@ pipeline {
             steps {
                 script {
                     echo "Setting up environment..."
-                    bat 'docker version'
+                    sh 'docker version'
+                    sh 'chmod +x ci/smoke_test.sh'
                 }
             }
         }
@@ -24,7 +25,7 @@ pipeline {
                         script {
                             echo "Building on Node 18..."
                             // Mounting workspace to container to build
-                            bat 'docker run --rm -v "%WORKSPACE%":/app -w /app node:18-alpine sh -c "npm ci && npm run build"'
+                            sh 'docker run --rm -v "$(pwd)":/app -w /app node:18-alpine sh -c "npm ci && npm run build"'
                         }
                     }
                 }
@@ -32,7 +33,7 @@ pipeline {
                     steps {
                         script {
                             echo "Building on Node 20..."
-                            bat 'docker run --rm -v "%WORKSPACE%":/app -w /app node:20-alpine sh -c "npm ci && npm run build"'
+                            sh 'docker run --rm -v "$(pwd)":/app -w /app node:20-alpine sh -c "npm ci && npm run build"'
                         }
                     }
                 }
@@ -42,7 +43,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    bat 'docker build -t power_gym:dev-%GIT_COMMIT% .'
+                    sh 'docker build -t power_gym:dev-${GIT_COMMIT} .'
                 }
             }
         }
@@ -51,9 +52,9 @@ pipeline {
             steps {
                 script {
                     // Remove existing container if any
-                    bat 'docker rm -f power_gym-dev || exit 0'
+                    sh 'docker rm -f power_gym-dev || true'
                     // Run new container
-                    bat 'docker run -d --name power_gym-dev -p 3001:80 power_gym:dev-%GIT_COMMIT%'
+                    sh 'docker run -d --name power_gym-dev -p 3001:80 power_gym:dev-${GIT_COMMIT}'
                 }
             }
         }
@@ -63,7 +64,7 @@ pipeline {
                 script {
                     // Wait for container to be fully ready
                     sleep(time: 10, unit: "SECONDS")
-                    bat 'scripts\\smoke.bat http://localhost:3001'
+                    sh './ci/smoke_test.sh http://host.docker.internal:3001' 
                 }
             }
         }
@@ -78,7 +79,7 @@ pipeline {
     post {
         always {
             // Cleanup container
-            bat 'docker rm -f power_gym-dev || exit 0'
+            sh 'docker rm -f power_gym-dev || true'
         }
         cleanup {
             cleanWs()

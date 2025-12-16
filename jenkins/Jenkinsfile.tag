@@ -16,7 +16,8 @@ pipeline {
         stage('Setup') {
             steps {
                 script {
-                    bat 'docker version'
+                    sh 'docker version'
+                    sh 'chmod +x ci/smoke_test.sh'
                     echo "Building for tag: ${TAG}"
                 }
             }
@@ -25,7 +26,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    bat "docker build -t power_gym:${TAG} ."
+                    sh "docker build -t power_gym:${TAG} ."
                 }
             }
         }
@@ -33,8 +34,8 @@ pipeline {
         stage('Run (Docker)') {
             steps {
                 script {
-                    bat 'docker rm -f power_gym-tag || exit 0'
-                    bat "docker run -d --name power_gym-tag -p 3003:80 power_gym:${TAG}"
+                    sh 'docker rm -f power_gym-tag || true'
+                    sh "docker run -d --name power_gym-tag -p 3003:80 power_gym:${TAG}"
                 }
             }
         }
@@ -43,7 +44,7 @@ pipeline {
             steps {
                 script {
                     sleep(time: 10, unit: "SECONDS")
-                    bat 'scripts\\smoke.bat http://localhost:3003'
+                    sh './ci/smoke_test.sh http://host.docker.internal:3003'
                 }
             }
         }
@@ -52,7 +53,7 @@ pipeline {
             steps {
                 script {
                     // Save Docker image as artifact
-                    bat "docker image save power_gym:${TAG} -o power_gym-${TAG}.tar"
+                    sh "docker image save power_gym:${TAG} -o power_gym-${TAG}.tar"
                 }
                 archiveArtifacts artifacts: "power_gym-${TAG}.tar, smoke_result.txt", fingerprint: true
             }
@@ -61,7 +62,7 @@ pipeline {
 
     post {
         always {
-            bat 'docker rm -f power_gym-tag || exit 0'
+            sh 'docker rm -f power_gym-tag || true'
         }
         cleanup {
             cleanWs()
