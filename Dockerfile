@@ -1,8 +1,9 @@
 # ===== Stage 1: Build Node app =====
-FROM node:20-alpine as builder
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine as builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 

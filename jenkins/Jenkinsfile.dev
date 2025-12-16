@@ -24,8 +24,8 @@ pipeline {
                     steps {
                         script {
                             echo "Building on Node 18..."
-                            // Mounting workspace to container to build
-                            sh 'docker run --rm -v "$(pwd)":/app -w /app node:18-alpine sh -c "npm install && npm run build"'
+                            // Use docker build with build-arg to avoid volume mount issues in DinD
+                            sh 'docker build --build-arg NODE_VERSION=18 -t power_gym:test-18-${GIT_COMMIT} .'
                         }
                     }
                 }
@@ -33,7 +33,7 @@ pipeline {
                     steps {
                         script {
                             echo "Building on Node 20..."
-                            sh 'docker run --rm -v "$(pwd)":/app -w /app node:20-alpine sh -c "npm install && npm run build"'
+                            sh 'docker build --build-arg NODE_VERSION=20 -t power_gym:test-20-${GIT_COMMIT} .'
                         }
                     }
                 }
@@ -78,8 +78,10 @@ pipeline {
 
     post {
         always {
-            // Cleanup container
+            // Cleanup container and images
             sh 'docker rm -f power_gym-dev || true'
+            sh 'docker rmi power_gym:test-18-${GIT_COMMIT} || true'
+            sh 'docker rmi power_gym:test-20-${GIT_COMMIT} || true'
         }
         cleanup {
             cleanWs()
