@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 URL="$1"
-OUT="ci/smoke_report_$(date +%s).txt"
+OUT="smoke_result.txt"
 
 if [ -z "$URL" ]; then
   echo "Usage: $0 http://host:port" | tee $OUT
